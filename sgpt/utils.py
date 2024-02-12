@@ -10,6 +10,7 @@ from click import BadParameter, UsageError
 from sgpt.__version__ import __version__
 from sgpt.integration import bash_integration, zsh_integration
 
+import shellingham
 
 def get_edited_prompt() -> str:
     """
@@ -70,14 +71,23 @@ def install_shell_integration(*_args: Any) -> None:
     Allows user to get shell completions in terminal by using hotkey.
     Replaces current "buffer" of the shell with the completion.
     """
+
+    try:
+        shell = shellingham.detect_shell()
+    except shellingham.ShellDetectionFailure:
+        if os.name == 'posix':
+            shell = os.environ['SHELL']
+        elif os.name == 'nt':
+            shell = os.environ['COMSPEC']
+        raise NotImplementedError(f'OS {os.name!r} support not available')
+
     # TODO: Add support for Windows.
     # TODO: Implement updates.
-    shell = os.getenv("SHELL", "")
-    if shell == "/bin/zsh":
+    if shell == "zsh":
         typer.echo("Installing ZSH integration...")
         with open(os.path.expanduser("~/.zshrc"), "a", encoding="utf-8") as file:
             file.write(zsh_integration)
-    elif shell == "/bin/bash":
+    elif shell == "bash":
         typer.echo("Installing Bash integration...")
         with open(os.path.expanduser("~/.bashrc"), "a", encoding="utf-8") as file:
             file.write(bash_integration)
